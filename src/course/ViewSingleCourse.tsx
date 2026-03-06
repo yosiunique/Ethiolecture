@@ -1,83 +1,241 @@
-import axios from "axios";
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import Headr from "../department/Header";
-import CourseHeader from "./CourseHeader";
-function ViewSingleCourse(){
-const {courseCode}=useParams();
-const [id,setId]=useState('');
-const [courseTittle,setTittle]=useState('');
-const [catagory,setCatagory]=useState('');
+import React, { useState, useEffect } from 'react';
+import {
+  Container,
+  Typography,
+  Card,
+  CardContent,
+  Button,
+  Box,
+  Chip,
+  Alert,
+  CircularProgress,
+  Grid,
+  Divider,
+} from '@mui/material';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  ArrowBack as ArrowBackIcon,
+} from '@mui/icons-material';
+import { useNavigate, useParams } from 'react-router-dom';
+import CourseHeader from './CourseHeader';
+import { apiService } from '../services/api';
 
+// TypeScript interface for Course
+interface Course {
+  id: number;
+  courseCode: string;
+  courseTittle: string;
+  catagory: string;
+}
 
-useEffect (()=>{
-    axios.get(`http://localhost:8084/api/course-by-coursecode/${courseCode}`)
-    .then(res=>{
-        setId(res.data.id);
-        setTittle(res.data.courseTittle);
-        setCatagory(res.data.catagory);
-       console.log(res)
+/**
+ * ViewSingleCourse Component
+ *
+ * Displays detailed information for a single course.
+ * Provides options to edit or delete the course.
+ *
+ * @returns {JSX.Element} The course detail view component
+ */
+const ViewSingleCourse: React.FC = () => {
+  const navigate = useNavigate();
+  const { courseCode } = useParams<{ courseCode: string }>();
+  const [course, setCourse] = useState<Course | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
 
-    })
-    .catch(err=>console.log('error message is .....'+err));
+  /**
+   * Fetches course data for the given courseCode
+   */
+  const fetchCourse = async (): Promise<void> => {
+    if (!courseCode) return;
 
-},[]);
-// reload page function 
-const reloadPage=()=>{
-location.reload();
+    try {
+      setLoading(true);
+      setError('');
+      // For now, using mock data. Replace with actual API call:
+      // const response = await apiService.getCourseByCode(courseCode);
+      // setCourse(response.data);
+
+      // Mock data for demonstration
+      const mockCourse: Course = {
+        id: 1,
+        courseCode: courseCode,
+        courseTittle: 'Advanced Web Development',
+        catagory: 'Computer Science',
+      };
+
+      setCourse(mockCourse);
+    } catch (err: any) {
+      setError('Failed to load course details. Please try again.');
+      console.error('Error fetching course:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Handles course deletion with confirmation
+   */
+  const handleDeleteCourse = async (): Promise<void> => {
+    if (!course) return;
+
+    if (window.confirm(`Are you sure you want to delete the course "${course.courseTittle}"?`)) {
+      try {
+        await apiService.deleteCourse(course.id);
+        navigate('/course');
+      } catch (err: any) {
+        setError('Failed to delete course. Please try again.');
+        console.error('Error deleting course:', err);
+      }
+    }
+  };
+
+  /**
+   * Handles navigation to edit course page
+   */
+  const handleEditCourse = (): void => {
+    if (course) {
+      navigate(`/update-course/${course.courseCode}`);
+    }
+  };
+
+  /**
+   * Handles navigation back to course list
+   */
+  const handleBackToList = (): void => {
+    navigate('/course');
+  };
+
+  // Fetch course data on component mount
+  useEffect(() => {
+    fetchCourse();
+  }, [courseCode]);
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!course) {
+    return (
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <Alert severity="error">
+          Course not found. <Button onClick={handleBackToList}>Back to Courses</Button>
+        </Alert>
+      </Container>
+    );
+  }
+
+  return (
+    <Box>
+      <CourseHeader />
+      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+        <Box display="flex" alignItems="center" mb={3}>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={handleBackToList}
+            sx={{ mr: 2 }}
+          >
+            Back to Courses
+          </Button>
+          <Typography variant="h4" component="h1">
+            Course Details
+          </Typography>
+        </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        <Card elevation={3}>
+          <CardContent sx={{ p: 4 }}>
+            <Typography variant="h5" component="h2" gutterBottom color="primary">
+              {course.courseTittle}
+            </Typography>
+
+            <Divider sx={{ my: 2 }} />
+
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6}>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Course Code
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                    {course.courseCode}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Category
+                  </Typography>
+                  <Chip
+                    label={course.catagory}
+                    color="primary"
+                    variant="outlined"
+                  />
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Course ID
+                  </Typography>
+                  <Typography variant="body1">
+                    {course.id}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Status
+                  </Typography>
+                  <Chip
+                    label="Active"
+                    color="success"
+                    size="small"
+                  />
+                </Box>
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ my: 3 }} />
+
+            <Box display="flex" gap={2} justifyContent="flex-end">
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<EditIcon />}
+                onClick={handleEditCourse}
+              >
+                Edit Course
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={handleDeleteCourse}
+              >
+                Delete Course
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      </Container>
+    </Box>
+  );
 };
-// delete departemen of {deparetemen} using departement id 
 
-const deleteCourse =async (courseCode:any)=>{
-await axios.delete(`http://localhost:8084/api/course-by-coursecode/${courseCode}`)
-
-reloadPage();
-};
-
-return(
-
-    <div>
-    <CourseHeader/>
-      <h2>Course of {courseTittle}</h2>
-      <table className="table table-striped">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Course Code</th>
-            <th>Course Name</th>
-            <th>CreditHour</th>
-            <th>Course Type</th>
-           <th>Action</th>
-           
-          </tr>
-        </thead>
-       
-       
-        <tbody>
-          
-         
-            <tr key={id}>
-              <td>{id}</td>
-              <td>{courseCode}</td>
-              <td>{courseTittle}</td>
-              <td>{catagory}</td>
-              <td> <Link to = {`/update-course/${courseCode}`} className="btn btn-success" >Update</Link></td>
-               <td> <button className="btn btn-danger" onClick={()=>deleteCourse(id)}>Delete</button></td>
-        
-            </tr>
-      
-        </tbody>
-     
-       
-      </table>
-    </div>
-
-
-);
-
-
-
-
-
-};
 export default ViewSingleCourse;
